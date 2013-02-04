@@ -3,12 +3,18 @@
 use warnings;
 use strict;
 
-use Config::Tiny;
 use Cwd;
-use Data::Dumper;
 use File::Basename;
 
+
+use Config::Tiny;
+use Data::Dumper;
+use DateTime::Format::Strptime;
+
 use WebService::Dropbox;
+
+
+our $timeparser = DateTime::Format::Strptime->new(pattern => '%A, %d %B %Y %T %z');
 
 sub get_dropbox {
   # Load configuration
@@ -55,10 +61,15 @@ sub pull {
 
   my $rel_path = basename($path);
   my $is_dir = $data->{is_dir};
+
   if (!$is_dir){
+    print "Downloading [".$data->{size}."]...\n";
+
     my $fh_get = IO::File->new($rel_path, '>');
     $dropbox->files($path, $fh_get) or die $dropbox->error;
     $fh_get->close;
+    my $fmodtime = $timeparser->parse_datetime($data->{modified})->epoch;
+    utime($fmodtime, $fmodtime, $rel_path);
   }
   else {
     if ($rel_path ne '/'){
