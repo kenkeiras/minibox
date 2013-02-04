@@ -55,7 +55,6 @@ sub pull {
 
   my $dropbox = shift || get_dropbox();
 
-  print "Checking $path...\n";
   my $data = shift || $dropbox->metadata($path) or die "Error requesting $path data";
 
   my $rel_path = basename($path);
@@ -65,8 +64,9 @@ sub pull {
 
     my $fmodtime = $timeparser->parse_datetime($data->{modified})->epoch;
     my $localmodtime = (stat $rel_path)[9] || -1;
+
     if ($fmodtime > $localmodtime) {
-      print "Downloading [".$data->{size}."]...\n";
+      print "Downloading $path [".$data->{size}."]...\n";
 
       my $fh_get = IO::File->new($rel_path, '>');
       $dropbox->files($path, $fh_get) or die $dropbox->error;
@@ -75,6 +75,7 @@ sub pull {
     }
   }
   else {
+    print "Checking $path...\n";
     if ($rel_path ne '/'){
       mkdir($rel_path);
       chdir($rel_path) or die "Error entering $rel_path";
