@@ -1,0 +1,98 @@
+#!/usr/bin/env perl
+
+use warnings;
+use strict;
+
+use Config::Tiny;
+use Cwd;
+use Data::Dumper;
+use File::Basename;
+
+use WebService::Dropbox;
+
+sub get_dropbox {
+  # Load configuration
+  my $config = Config::Tiny->read('gb.cnf');
+  my $config_hash = $config->{_};
+
+  my $KEY = $config_hash->{KEY};
+  my $SECRET = $config_hash->{SECRET};
+  my $access_token = $config_hash->{ACCESS_TOKEN};
+  my $access_secret = $config_hash->{ACCESS_SECRET};
+
+  # Connect
+  my $dropbox = WebService::Dropbox->new({key => $KEY, # App Key
+                                          secret => $SECRET # App Secret
+                                         });
+
+  if (!$access_token or !$access_secret) {
+    my $url = $dropbox->login or die $dropbox->error;
+    warn "Please Access URL and press Enter: $url";
+    <STDIN>;
+    $dropbox->auth or die $dropbox->error;
+    warn "access_token: " . $dropbox->access_token;
+    warn "access_secret: " . $dropbox->access_secret;
+  } else {
+    $dropbox->access_token($access_token);
+    $dropbox->access_secret($access_secret);
+  }
+
+  return $dropbox;
+}
+
+
+sub pull {
+  my $path = shift || '/';
+  if ($path eq ''){
+    $path = '/';
+  }
+
+  my $dropbox = shift || get_dropbox();
+
+  print "Pulling $path...\n";
+
+  my $data = $dropbox->metadata($path);
+
+  my $rel_path = basename($path);
+  my $is_dir = $data->{is_dir};
+  if (!$is_dir){
+    my $fh_get = IO::File->new($rel_path, '>');
+    $dropbox->files($path, $fh_get) or die $dropbox->error;
+    $fh_get->close;
+  }
+  else {
+    if ($rel_path ne '/'){
+      mkdir($rel_path);
+      chdir($rel_path) or die "Error entering $rel_path";
+    }
+    my $contents = $data->{contents};
+    foreach (@$contents){
+      if (basename($_->{path}) ne '.metadata'){
+        pull($_->{path}, $dropbox);
+      }
+    }
+    if ($rel_path ne '/'){
+      chdir("..") or die 'Error returning';
+    }
+  }
+}
+
+
+sub print_usage {
+  print "minibox (pull|push) [(file|folder) [(file|folder) [...]]]\n"
+}
+
+if ($#ARGV < 0){
+  print_usage();
+  exit 0;
+}
+
+if ($ARGV[0] eq "pull"){
+  if ($#ARGV == 0){
+    push(@ARGV, '/');
+  }
+
+  for(my $i = 1; $i <= $#ARGV; $i++){
+    pull($ARGV[$i]);
+  }
+}
