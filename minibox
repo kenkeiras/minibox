@@ -18,7 +18,7 @@ our $timeparser = DateTime::Format::Strptime->new(pattern => '%A, %d %B %Y %T %z
 
 sub get_dropbox {
   # Load configuration
-  my $config = Config::Tiny->read('gb.cnf');
+  my $config = Config::Tiny->read('.mb.cnf');
   my $config_hash = $config->{_};
 
   my $KEY = $config_hash->{KEY};
