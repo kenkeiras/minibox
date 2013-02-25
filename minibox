@@ -13,6 +13,23 @@ use DateTime::Format::Strptime;
 
 use WebService::Dropbox;
 
+my $color = 1;
+if ($color){
+  our $ADD_COLOR = "\x1b[0;92m";
+  our $MODIFY_COLOR = "\x1b[0;93m";
+  our $DELETE_COLOR = "\x1b[0;91m";
+  our $CHECK_COLOR = "\x1b[0;94m";
+
+  our $COLOR_END = "\x1b[0m";
+}
+else{
+  our $ADD_COLOR = "";
+  our $MODIFY_COLOR = "";
+  our $DELETE_COLOR = "";
+
+  our $COLOR_END = "";
+}
+
 
 our $timeparser = DateTime::Format::Strptime->new(pattern => '%A, %d %B %Y %T %z');
 
@@ -48,6 +65,13 @@ sub get_dropbox {
 
 
 sub pull {
+  our $ADD_COLOR;
+  our $MODIFY_COLOR;
+  our $DEL_COLOR;
+  our $CHECK_COLOR;
+
+  our $COLOR_END;
+
   my $path = shift || '/';
   if ($path eq ''){
     $path = '/';
@@ -66,7 +90,15 @@ sub pull {
     my $localmodtime = (stat $rel_path)[9] || -1;
 
     if ($fmodtime > $localmodtime) {
-      print "Downloading $path [".$data->{size}."]...\n";
+
+      my $status;
+      if ($localmodtime == -1){
+        $status = $ADD_COLOR . "A" . $COLOR_END;
+      }
+      else {
+        $status = $MODIFY_COLOR . "M" . $COLOR_END;
+      }
+      print "$status Downloading $path [".$data->{size}."]...\n";
 
       my $fh_get = IO::File->new($rel_path, '>');
       $dropbox->files($path, $fh_get) or die $dropbox->error;
@@ -75,7 +107,7 @@ sub pull {
     }
   }
   else {
-    print "Checking $path...\n";
+    print "$CHECK_COLOR#$COLOR_END Checking $path...\n";
     if ($rel_path ne '/'){
       mkdir($rel_path);
       chdir($rel_path) or die "Error entering $rel_path";
