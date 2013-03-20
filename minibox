@@ -13,12 +13,13 @@ use DateTime::Format::Strptime;
 
 use WebService::Dropbox;
 
+# Configures the output based on if color is preferred
 my $color = 1;
 if ($color) {
-    our $ADD_COLOR = "\x1b[0;92m";
-    our $MODIFY_COLOR = "\x1b[0;93m";
-    our $DELETE_COLOR = "\x1b[0;91m";
-    our $CHECK_COLOR = "\x1b[0;94m";
+    our $ADD_COLOR = "\x1b[0;92m";    # Green
+    our $MODIFY_COLOR = "\x1b[0;93m"; # Orange
+    our $DELETE_COLOR = "\x1b[0;91m"; # Red
+    our $CHECK_COLOR = "\x1b[0;94m";  # Blue
 
     our $COLOR_END = "\x1b[0m";
 }
@@ -30,9 +31,13 @@ else {
     our $COLOR_END = "";
 }
 
-
+# Server time format parser
 our $timeparser = DateTime::Format::Strptime->new(pattern => '%A, %d %B %Y %T %z');
 
+
+#
+# Returns a Dropbox interface based on the .mb.cnf configuration.
+#
 sub get_dropbox{
     # Load configuration
     my $config = Config::Tiny->read('.mb.cnf');
@@ -43,7 +48,7 @@ sub get_dropbox{
     my $access_token = $config_hash->{ACCESS_TOKEN};
     my $access_secret = $config_hash->{ACCESS_SECRET};
 
-    # Connect
+
     my $dropbox = WebService::Dropbox->new({key => $KEY, # App Key
                                             secret => $SECRET # App Secret
                                            });
@@ -64,7 +69,16 @@ sub get_dropbox{
 }
 
 
+#
+# Pulls a directory or file from the Dropbox account.
+#
+# @param Path to pull (defaults to '/').
+# @param Dropbox interface.
+# @param Path metadata (not needed).
+#
 sub pull{
+
+    # Load color configuration
     our $ADD_COLOR;
     our $MODIFY_COLOR;
     our $DEL_COLOR;
@@ -72,20 +86,22 @@ sub pull{
 
     our $COLOR_END;
 
+    # Load parameters
     my $path = shift || '/';
     if ($path eq '') {
         $path = '/';
     }
 
     my $dropbox = shift || get_dropbox();
-
     my $data = shift || $dropbox->metadata($path) or die "Error requesting $path data";
 
     my $rel_path = basename($path);
     my $is_dir = $data->{is_dir};
 
+    # If is a file
     if (!$is_dir) {
 
+        # Compare the modification dates, download it only if it's needed.
         my $fmodtime = $timeparser->parse_datetime($data->{modified})->epoch;
         my $localmodtime = (stat $rel_path)[9] || -1;
 
@@ -106,22 +122,30 @@ sub pull{
             utime($fmodtime, $fmodtime, $rel_path);
         }
     }
+
+    # If is a directory
     else {
         print "$CHECK_COLOR#$COLOR_END Checking $path...\n";
+
+        # Create the directory
         if ($rel_path ne '/') {
             mkdir($rel_path);
             chdir($rel_path) or die "Error entering $rel_path";
         }
 
+        # Load metadata
         if (!$data->{contents}) {
             $data = $dropbox->metadata($path);
         }
+
+        # Repeat for each directory entry
         my $contents = $data->{contents};
         foreach (@$contents) {
             if (basename($_->{path}) ne '.metadata') {
                 pull($_->{path}, $dropbox, $_);
             }
         }
+
         if ($rel_path ne '/') {
             chdir("..") or die 'Error returning';
         }
@@ -129,11 +153,15 @@ sub pull{
 }
 
 
+#
+# Shows the command line options
+#
 sub print_usage{
     print "minibox (pull|push) [(file|folder) [(file|folder) [...]]]\n"
 }
 
 
+# Manage the command line parameters
 if ($#ARGV < 0) {
     print_usage();
     exit 0;
