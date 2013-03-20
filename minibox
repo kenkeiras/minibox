@@ -95,7 +95,8 @@ sub pull{
     my $dropbox = shift || get_dropbox();
     my $data = shift || $dropbox->metadata($path) or die "Error requesting $path data";
 
-    my $rel_path = basename($path);
+    my $rel_path = $path;
+    $rel_path =~ s/^[\/\\]+//g;
     my $is_dir = $data->{is_dir};
 
     # If is a file
@@ -130,7 +131,6 @@ sub pull{
         # Create the directory
         if ($rel_path ne '/') {
             mkdir($rel_path);
-            chdir($rel_path) or die "Error entering $rel_path";
         }
 
         # Load metadata
@@ -144,10 +144,6 @@ sub pull{
             if (basename($_->{path}) ne '.metadata') {
                 pull($_->{path}, $dropbox, $_);
             }
-        }
-
-        if ($rel_path ne '/') {
-            chdir("..") or die 'Error returning';
         }
     }
 }
