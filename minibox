@@ -160,10 +160,9 @@ sub print_usage{
 # Manage the command line parameters
 if ($#ARGV < 0) {
     print_usage();
-    exit 0;
 }
-
-if ($ARGV[0] eq "pull") {
+# Pull files
+elsif ($ARGV[0] eq "pull") {
     if ($#ARGV == 0) {
         push(@ARGV, '/');
     }
@@ -171,4 +170,8 @@ if ($ARGV[0] eq "pull") {
     for(my $i = 1; $i <= $#ARGV; $i++) {
         pull($ARGV[$i]);
     }
+}
+# Show help
+else{
+    print_usage();
 }
