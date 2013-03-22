@@ -171,6 +171,10 @@ sub db_push{
         $path = '/';
     }
 
+    # Path normalization
+    $path =~ s/^/\//;
+    $path =~ s/[\/\\]+/\//g;
+
     my $dropbox = shift || get_dropbox();
 
     my $rel_path = $path;
@@ -179,10 +183,11 @@ sub db_push{
     # Is a directory
     if (-d "./$rel_path") {
         print "$CHECK_COLOR#$COLOR_END Checking $path...\n";
+        $dropbox->create_folder("$path");
+
         opendir(DIR, "./$rel_path" ) || die "Error reading ./$rel_path";
-        for my $dir (grep { !/^\./ } readdir DIR) {
-            # TODO: Create directory
-            db_push("$path/$dir", $dropbox);
+        for my $entry (grep { !/^\./ } readdir DIR) {
+            db_push("$path/$entry", $dropbox);
         }
     }
     # Is a file
@@ -196,6 +201,7 @@ sub db_push{
         else {
             $fmodtime = -1;
         }
+
         if ($localmodtime > $fmodtime) {
             print $UPLOAD_COLOR. "U" .$COLOR_END. " $path\n";
             my $fh_put = IO::File->new($rel_path);
