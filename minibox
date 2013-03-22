@@ -20,6 +20,7 @@ if ($color) {
     our $MODIFY_COLOR = "\x1b[0;93m"; # Orange
     our $DELETE_COLOR = "\x1b[0;91m"; # Red
     our $CHECK_COLOR = "\x1b[0;94m";  # Blue
+    our $UPLOAD_COLOR = "\x1b[0;92m"; # Green
 
     our $COLOR_END = "\x1b[0m";
 }
@@ -27,6 +28,7 @@ else {
     our $ADD_COLOR = "";
     our $MODIFY_COLOR = "";
     our $DELETE_COLOR = "";
+    our $UPLOAD_COLOR = "";
 
     our $COLOR_END = "";
 }
@@ -150,12 +152,70 @@ sub pull{
 
 
 #
+# Pushes a directory or file to the Dropbox account.
+#
+# @param Path to push (defaults to '/').
+# @param Dropbox interface.
+# @param Path metadata (not needed).
+#
+sub db_push{
+
+    # Load color configuration
+    our $CHECK_COLOR;
+    our $UPLOAD_COLOR;
+    our $COLOR_END;
+
+    # Load parameters
+    my $path = shift || '/';
+    if ($path eq '') {
+        $path = '/';
+    }
+
+    my $dropbox = shift || get_dropbox();
+
+    my $rel_path = $path;
+    $rel_path =~ s/^[\/\\]+//g;
+
+    # Is a directory
+    if (-d "./$rel_path") {
+        print "$CHECK_COLOR#$COLOR_END Checking $path...\n";
+        opendir(DIR, "./$rel_path" ) || die "Error reading ./$rel_path";
+        for my $dir (grep { !/^\./ } readdir DIR) {
+            # TODO: Create directory
+            db_push("$path/$dir", $dropbox);
+        }
+    }
+    # Is a file
+    else {
+        my $localmodtime = (stat $rel_path)[9] || -1;
+        my $data = $dropbox->metadata("$path") || -1;
+        my $fmodtime;
+        if ($data != -1) {
+            $fmodtime = $timeparser->parse_datetime($data->{modified})->epoch;
+        }
+        else {
+            $fmodtime = -1;
+        }
+        if ($localmodtime > $fmodtime) {
+            print $UPLOAD_COLOR. "U" .$COLOR_END. " $path\n";
+            my $fh_put = IO::File->new($rel_path);
+            $dropbox->files_put($path, $fh_put) or die $dropbox->error;
+            $fh_put->close;
+        }
+    }
+}
+
+
+#
 # Shows the command line options
 #
 sub print_usage{
     print "minibox (pull|push) [(file|folder) [(file|folder) [...]]]\n"
 }
 
+
+
+my $i;
 
 # Manage the command line parameters
 if ($#ARGV < 0) {
@@ -167,8 +227,18 @@ elsif ($ARGV[0] eq "pull") {
         push(@ARGV, '/');
     }
 
-    for(my $i = 1; $i <= $#ARGV; $i++) {
+    for($i = 1; $i <= $#ARGV; $i++) {
         pull($ARGV[$i]);
+    }
+}
+# Push files
+elsif ($ARGV[0] eq "push") {
+    if ($#ARGV == 0) {
+        push(@ARGV, '/');
+    }
+
+    for($i = 1; $i <= $#ARGV; $i++) {
+        db_push($ARGV[$i]);
     }
 }
 # Show help
