@@ -20,6 +20,7 @@ Setup
 
 Just create a *.mb.cnf* file with the following syntax on the target folder
 (you may request it on the [Dropbox developers site](https://www.dropbox.com/developers/apps))
+
     KEY = <API key>
     SECRET = <API secret>
 
@@ -31,6 +32,7 @@ Do a general pull, it'll output a URL to grant access to your account:
 Access it with a browser, grant it access and press enter on the minibox
 terminal, an access token and secret with be displayed, copy it to the .mb.cnf
 file in order to not having to repeat this process:
+
     ACCESS_TOKEN = <displayed access token>
     ACCESS_SECRET = <displayed access secret>
 
@@ -40,8 +42,10 @@ I/O
 
 Pull files and directories from Dropbox, if no one is specified it defaults to
 the Dropbox folder root.
+
     minibox pull [<file/directory> [<file/directory> [...]]]
 
 Push files and directories from Dropbox, if no one is specified it defaults to
 the Dropbox folder root.
+
     minibox push [<file/directory> [<file/directory> [...]]]
