@@ -7,9 +7,10 @@ Requisites
 ==========
 
 It depends on the following perl libraries (available through CPAN).
-[Config::Tiny](http://search.cpan.org/~adamk/Config-Tiny-2.14/lib/Config/Tiny.pm)
-[DateTime::Format::Strptime](http://search.cpan.org/~drolsky/DateTime-Format-Strptime-1.52/lib/DateTime/Format/Strptime.pm)
-[WebService::Dropbox](http://search.cpan.org/~askadna/WebService-Dropbox-1.17/lib/WebService/Dropbox.pm)
+
+ * [Config::Tiny](http://search.cpan.org/~adamk/Config-Tiny-2.14/lib/Config/Tiny.pm)
+ * [DateTime::Format::Strptime](http://search.cpan.org/~drolsky/DateTime-Format-Strptime-1.52/lib/DateTime/Format/Strptime.pm)
+ * [WebService::Dropbox](http://search.cpan.org/~askadna/WebService-Dropbox-1.17/lib/WebService/Dropbox.pm)
 
 
 Usage
